@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiRequest, handleProductImageError, productImageUrl } from '../services/api';
 import '../styles/Inventory.css';
 
-function Inventory({ token }) {
+function Inventory({ token, role }) {
+	const isAdmin = role === 'admin';
 	const [products, setProducts] = useState([]);
 	const [categories, setCategories] = useState([]);
 	const [searchTerm, setSearchTerm] = useState('');
@@ -85,7 +86,7 @@ function Inventory({ token }) {
 					<h1>Inventory</h1>
 					<p>{products.length} products <span>· {lowStockProducts.length} low stock</span></p>
 				</div>
-				<button className="inventory-primary-button" type="button" onClick={openAdd}>+ Add Product</button>
+				{isAdmin && <button className="inventory-primary-button" type="button" onClick={openAdd}>+ Add Product</button>}
 			</header>
 
 			{error && <p className="inventory-error" role="alert">{error}</p>}
@@ -101,14 +102,14 @@ function Inventory({ token }) {
 
 			<div className="inventory-table-wrap">
 				<table className="inventory-table">
-					<thead><tr><th>Image</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+					<thead><tr><th>Image</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th>{isAdmin && <th>Actions</th>}</tr></thead>
 					<tbody>
 						{!loading && visibleProducts.map((product) => (
 							<tr key={product.id}>
 								<td><img className="inventory-product-image" src={productImageUrl(product.image_url)} onError={handleProductImageError} alt="" /></td>
 								<td>{product.name}</td><td>{product.category}</td><td className="inventory-price">₱{product.price.toFixed(2)}</td>
 								<td><span className={product.stock < product.low_stock_threshold ? 'stock-badge low' : 'stock-badge'}>{product.stock}</span></td>
-								<td className="inventory-actions"><button type="button" onClick={() => openEdit(product)}>Edit</button><button className="delete-button" type="button" onClick={() => setModal({ type: 'delete', ...product })}>Delete</button></td>
+								{isAdmin && <td className="inventory-actions"><button type="button" onClick={() => openEdit(product)}>Edit</button><button className="delete-button" type="button" onClick={() => setModal({ type: 'delete', ...product })}>Delete</button></td>}
 							</tr>
 						))}
 						{loading && <tr><td colSpan="6">Loading inventory…</td></tr>}

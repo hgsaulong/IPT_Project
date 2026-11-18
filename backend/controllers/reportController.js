@@ -8,7 +8,31 @@ function formatSqlDate(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
 
-function getRange(range) {
+function parseDateInput(value) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return null;
+    }
+    const [year, month, day] = value.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime())
+        || date.getFullYear() !== year
+        || date.getMonth() !== month - 1
+        || date.getDate() !== day
+        ? null
+        : date;
+}
+
+function getRange(range, startDate, endDate) {
+    if (range === 'Custom') {
+        const start = parseDateInput(startDate);
+        const selectedEnd = parseDateInput(endDate);
+        if (!start || !selectedEnd || start > selectedEnd) {
+            throw Object.assign(new Error('Choose a valid custom date range.'), { status: 400 });
+        }
+        selectedEnd.setDate(selectedEnd.getDate() + 1);
+        return [formatSqlDate(start), formatSqlDate(selectedEnd)];
+    }
+
     const now = new Date();
     const end = startOfDay(now);
     end.setDate(end.getDate() + 1);
@@ -35,7 +59,7 @@ function getRange(range) {
 
 exports.getSalesReport = async (req, res) => {
     const range = typeof req.query.range === 'string' ? req.query.range : 'Today';
-    const [start, end] = getRange(range);
+    const [start, end] = getRange(range, req.query.startDate, req.query.endDate);
     const parameters = [start, end];
 
     const [summaryRows] = await db.promise().execute(
@@ -72,6 +96,18 @@ exports.getSalesReport = async (req, res) => {
          ORDER BY month`,
         parameters
     );
+    const [topProductRows] = await db.promise().execute(
+        `SELECT si.product_name AS name,
+                SUM(si.quantity) AS quantity,
+                SUM(si.line_total) AS total
+         FROM sale_items si
+         JOIN sales s ON s.id = si.sale_id
+         WHERE s.created_at >= ? AND s.created_at < ?
+         GROUP BY si.product_id, si.product_name
+         ORDER BY quantity DESC, total DESC, name
+         LIMIT 10`,
+        parameters
+    );
     const [allTimeRows] = await db.promise().query(
         'SELECT COALESCE(SUM(total), 0) AS total FROM sales WHERE created_at >= CURRENT_DATE - INTERVAL 6 DAY'
     );
@@ -100,6 +136,12 @@ exports.getSalesReport = async (req, res) => {
             month: row.month,
             total: Number(row.total),
             transactions: Number(row.transactions)
+        }))
+        ,
+        topProducts: topProductRows.map((row) => ({
+            name: row.name,
+            quantity: Number(row.quantity),
+            total: Number(row.total)
         }))
     });
 };

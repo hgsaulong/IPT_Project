@@ -8,7 +8,9 @@ const productRoutes = require('./routes/productRoutes');
 const salesRoutes = require('./routes/salesRoutes');
 const creditRoutes = require('./routes/creditRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-const { authenticateToken } = require('./middleware/authMiddleware');
+const userRoutes = require('./routes/userRoutes');
+const userController = require('./controllers/userController');
+const { authenticateToken, requireAdmin } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -20,24 +22,14 @@ app.use('/api/products', authenticateToken, productRoutes);
 app.use('/api/sales', authenticateToken, salesRoutes);
 app.use('/api/credit', authenticateToken, creditRoutes);
 app.use('/api/reports', authenticateToken, reportRoutes);
+app.use('/api/users', authenticateToken, requireAdmin, userRoutes);
+// Preserve the original endpoint for existing clients while using the new
+// administrator-only user access rules.
+app.get('/users', authenticateToken, requireAdmin, userController.listUsers);
 
 app.get("/", (req, res) => {
     res.json({
         message: "Bili-Bili backend is working!"
-    });
-});
-
-app.get("/users", authenticateToken, (req, res) => {
-    db.query("SELECT id, username FROM users", (err, results) => {
-        if (err) {
-            console.error("Database error:", err);
-
-            return res.status(500).json({
-                error: "Database error"
-            });
-        }
-
-        res.json(results);
     });
 });
 

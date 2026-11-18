@@ -3,7 +3,7 @@ require('dotenv').config();
 const db = require('./db');
 const bcrypt = require('bcryptjs');
 
-const usernames = ['Saulong', 'De Vera', 'Delig', 'Pascualado', 'Liscano', 'Marie'];
+const usernames = ['Owner', 'Saulong', 'De Vera', 'Delig', 'Pascualado', 'Liscano', 'Marie'];
 
 function readHidden(prompt) {
     return new Promise((resolve, reject) => {
@@ -55,7 +55,16 @@ async function seedUsers() {
     const missingUsernames = usernames.filter((username) => !existingUsernames.has(username.toLowerCase()));
 
     if (missingUsernames.length === 0) {
-        console.log('All six cashier accounts already exist. No passwords were changed.');
+        await db.promise().execute(
+            'UPDATE users SET role = CASE WHEN LOWER(username) IN (LOWER(?), LOWER(?)) THEN ? ELSE role END WHERE LOWER(username) IN (LOWER(?), LOWER(?))',
+            ['Owner', 'Saulong', 'admin', 'Owner', 'Saulong']
+        );
+        await db.promise().execute(
+            'UPDATE users SET role = ? WHERE LOWER(username) = LOWER(?)',
+            ['cashier', 'Marie']
+        );
+        console.log('Owner is configured as admin and Marie as cashier. Existing passwords were not changed.');
+        console.log('All requested accounts already exist. No passwords were changed.');
         return;
     }
 
@@ -67,12 +76,16 @@ async function seedUsers() {
 
         const passwordHash = await bcrypt.hash(password, 12);
         await db.promise().execute(
-            'INSERT INTO users (username, password) VALUES (?, ?)',
-            [username, passwordHash]
+            'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+            [username, passwordHash, ['Owner', 'Saulong'].includes(username) ? 'admin' : 'cashier']
         );
         console.log(`Saved hashed password for ${username}.`);
     }
 
+    await db.promise().execute(
+        'UPDATE users SET role = CASE WHEN LOWER(username) IN (LOWER(?), LOWER(?)) THEN ? WHEN LOWER(username) = LOWER(?) THEN ? ELSE role END WHERE LOWER(username) IN (LOWER(?), LOWER(?), LOWER(?))',
+        ['Owner', 'Saulong', 'admin', 'Marie', 'cashier', 'Owner', 'Saulong', 'Marie']
+    );
     console.log('All requested accounts are ready. Plaintext passwords were not stored.');
 }
 

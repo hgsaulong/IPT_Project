@@ -8,11 +8,41 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     username VARCHAR(100) NOT NULL,
     password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'cashier') NOT NULL DEFAULT 'cashier',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB;
+
+
+SET @user_role_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'users'
+      AND COLUMN_NAME = 'role'
+);
+SET @user_role_ddl = IF(
+    @user_role_exists = 0,
+    'ALTER TABLE users ADD COLUMN role ENUM(''admin'', ''cashier'') NOT NULL DEFAULT ''cashier'' AFTER password',
+    'SELECT 1'
+);
+PREPARE user_role_statement FROM @user_role_ddl;
+EXECUTE user_role_statement;
+DEALLOCATE PREPARE user_role_statement;
+
+UPDATE users
+SET role = 'admin'
+WHERE LOWER(username) = LOWER('Saulong');
+
+UPDATE users
+SET role = 'admin'
+WHERE LOWER(username) = LOWER('Owner');
+
+UPDATE users
+SET role = 'cashier'
+WHERE LOWER(username) = LOWER('Marie');
 
 CREATE TABLE IF NOT EXISTS categories (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -195,8 +225,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM customers existing WHERE existing.phone = seed.phone
 );
 
--- Synthetic DEMO-HIST-* sales dated 1 to 60 days before today.
--- A cashier account must exist for foreign-key-safe sample sales.
+
 DROP TEMPORARY TABLE IF EXISTS sample_sale_days;
 CREATE TEMPORARY TABLE sample_sale_days (
     day_number INT UNSIGNED NOT NULL PRIMARY KEY
@@ -210,7 +239,7 @@ INSERT INTO sample_sale_days (day_number) VALUES
     (41),(42),(43),(44),(45),(46),(47),(48),(49),(50),
     (51),(52),(53),(54),(55),(56),(57),(58),(59),(60);
 
--- Remove only records from previous versions of this demo seed.
+
 DELETE FROM sales
 WHERE (
     (receipt_number LIKE 'DEMO-___' AND CHAR_LENGTH(receipt_number) = 8)

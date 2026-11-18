@@ -592,6 +592,50 @@
 	margin-top: 24px;
 }
 
+.print-receipt-button {
+	width: 100%;
+	height: 48px;
+	margin-top: 18px;
+	border: 1px solid var(--dashboard-line);
+	border-radius: 8px;
+	color: var(--dashboard-ink);
+	background: var(--dashboard-field);
+	cursor: pointer;
+	font: 600 18px 'Barlow Condensed', sans-serif;
+	text-transform: uppercase;
+}
+
+@media print {
+	body * {
+		visibility: hidden;
+	}
+
+	.receipt-backdrop,
+	.receipt-backdrop * {
+		visibility: visible;
+	}
+
+	.receipt-backdrop {
+		position: absolute;
+		display: block;
+		padding: 0;
+		background: transparent;
+	}
+
+	.receipt-modal {
+		width: 80mm;
+		max-height: none;
+		padding: 8mm;
+		border: 0;
+		box-shadow: none;
+	}
+
+	.print-receipt-button,
+	.new-transaction-button {
+		display: none;
+	}
+}
+
 @media (max-width: 1180px) {
 	.checkout-workspace {
 		grid-template-columns: minmax(0, 1fr) 330px;

@@ -1,5 +1,10 @@
-	function Sidebar({ activePage, onNavigate, collapsed, onToggle, username }) {
-	const menuItems = ['Checkout', 'Inventory', 'Credit', 'Sales Reports'];
+	function Sidebar({ activePage, onNavigate, collapsed, onToggle, username, role }) {
+	const menuItems = [
+		'Checkout',
+		'Inventory',
+		'Credit',
+		...(role === 'admin' ? ['Sales Reports', 'User Access'] : [])
+	];
 
 	return (
 			<aside className={collapsed ? 'app-sidebar collapsed' : 'app-sidebar'}>
@@ -34,7 +39,7 @@
 
 			<div className="sidebar-account">
 				<strong>{username || 'Cashier'}</strong>
-				<span>Admin</span>
+				<span>{role === 'admin' ? 'Admin' : 'Cashier'}</span>
 				<button type="button" onClick={() => onNavigate('Logout')}>Logout</button>
 			</div>
 		</aside>

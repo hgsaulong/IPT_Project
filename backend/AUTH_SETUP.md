@@ -22,7 +22,7 @@ From the `backend` directory, run:
 npm run seed:users
 ```
 
-The script prompts privately for a password for each username listed in `backend/seed-users.js` (currently `Saulong`, `De Vera`, `Delig`, `Pascualado`, `Liscano`, and `Marie`). Choose any non-empty password up to 200 characters. Terminal input is hidden, and only bcrypt hashes are stored. Existing usernames are skipped and their passwords are not changed.
+The script prompts privately for a password for each username listed in `backend/seed-users.js`. Choose any non-empty password up to 200 characters. Terminal input is hidden, and only bcrypt hashes are stored. Existing usernames are skipped and their passwords are not changed.
 
 ## Start the app services
 

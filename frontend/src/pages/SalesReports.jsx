@@ -17,21 +17,34 @@ const displayEnd = (value) => {
 
 function SalesReports({ token }) {
 	const [range, setRange] = useState('Today');
+	const [startDate, setStartDate] = useState('');
+	const [endDate, setEndDate] = useState('');
 	const [report, setReport] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 
 	useEffect(() => {
+		if (range === 'Custom' && (!startDate || !endDate)) {
+			setReport(null);
+			setLoading(false);
+			return undefined;
+		}
 		setLoading(true);
 		setError('');
-		apiRequest(`/api/reports/sales?range=${encodeURIComponent(range)}`, token)
+		const params = new URLSearchParams({ range });
+		if (range === 'Custom') {
+			params.set('startDate', startDate);
+			params.set('endDate', endDate);
+		}
+		apiRequest(`/api/reports/sales?${params.toString()}`, token)
 			.then(setReport)
 			.catch((loadError) => setError(loadError.message))
 			.finally(() => setLoading(false));
-	}, [range, token]);
+	}, [range, startDate, endDate, token]);
 
 	const dailySales = report?.dailySales || [];
 	const paymentMethods = report?.paymentMethods || [];
+	const topProducts = report?.topProducts || [];
 	const maxSales = Math.max(1, ...dailySales.map((entry) => entry.total));
 	const paymentTotal = paymentMethods.reduce((sum, method) => sum + method.amount, 0);
 
@@ -42,15 +55,23 @@ function SalesReports({ token }) {
 					<h1>Sales Reports</h1>
 					<p>{report ? `${report.start.slice(0, 10)} – ${displayEnd(report.end)}` : 'Sales from your database'}</p>
 				</div>
-				<select aria-label="Report range" value={range} onChange={(event) => setRange(event.target.value)}>
+				<div className="report-range-controls">
+					<select aria-label="Report range" value={range} onChange={(event) => setRange(event.target.value)}>
 					<option>Today</option>
 					<option>This Week</option>
 					<option>This Month</option>
-				</select>
+						<option>Custom</option>
+					</select>
+					{range === 'Custom' && <div className="custom-date-controls">
+						<label>From<input aria-label="Report start date" type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} /></label>
+						<label>To<input aria-label="Report end date" type="date" min={startDate || undefined} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+					</div>}
+				</div>
 			</header>
 
 			{error && <p className="reports-error" role="alert">{error}</p>}
 			{loading && <p>Loading sales report…</p>}
+			{range === 'Custom' && (!startDate || !endDate) && <p className="report-empty">Choose a start and end date to view the report.</p>}
 			{report && <>
 				<section className="report-summary-grid" aria-label="Sales summary">
 					<div className="report-summary-card"><label>Total Sales</label><strong>{formatMoney(report.summary.totalSales)}</strong></div>
@@ -76,6 +97,12 @@ function SalesReports({ token }) {
 							})}
 						</div>}
 					</div>
+				</section>
+				<section className="top-products-panel">
+					<h2>Top-Selling Products</h2>
+					{topProducts.length === 0 ? <p className="report-empty">No products sold in this period.</p> : <div className="top-products-list">
+						{topProducts.map((product, index) => <div className="top-product-row" key={`${product.name}-${index}`}><span className="top-product-rank">{index + 1}</span><strong>{product.name}</strong><span>{product.quantity} sold</span><b>{formatMoney(product.total)}</b></div>)}
+					</div>}
 				</section>
 				{report.monthlySales.length > 0 && <section className="monthly-breakdown"><h2>Monthly Breakdown</h2><div>{report.monthlySales.map((month) => <p key={month.month}><strong>{new Date(`${month.month}-01T00:00:00`).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</strong><span>{formatMoney(month.total)} · {month.transactions} transactions</span></p>)}</div></section>}
 			</>}

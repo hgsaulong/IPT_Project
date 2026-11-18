@@ -137,6 +137,10 @@ function Checkout({ token, cashier }) {
 		setCreditCustomer({ name: '', phone: '', address: '' });
 	};
 
+	const printReceipt = () => {
+		window.print();
+	};
+
 	const selectPaymentMethod = (method) => {
 		setPaymentMethod(method);
 		if (method !== 'Cash') setAmountTendered('');
@@ -222,6 +226,7 @@ function Checkout({ token, cashier }) {
 							<div><span>Cashier</span><span>{cashier || 'Cashier'}</span></div>
 						</div>
 						<p className="receipt-thanks">Thank you for your purchase!</p>
+						<button className="print-receipt-button" type="button" onClick={printReceipt}>Print Receipt</button>
 						<button className="new-transaction-button" type="button" onClick={startNewTransaction}>New Transaction</button>
 					</section>
 				</div>

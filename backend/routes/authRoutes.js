@@ -16,7 +16,7 @@ router.post('/login', async (req, res) => {
 
     try {
         const [users] = await db.promise().execute(
-            'SELECT id, username, password FROM users WHERE username = ? LIMIT 1',
+            'SELECT id, username, password, role FROM users WHERE username = ? LIMIT 1',
             [username]
         );
         const user = users[0];
@@ -29,14 +29,14 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { userId: user.id, username: user.username },
+            { userId: user.id, username: user.username, role: user.role },
             jwtSecret,
             { expiresIn: '8h', issuer: 'bili-bili-pos' }
         );
 
         return res.json({
             token,
-            user: { id: user.id, username: user.username },
+            user: { id: user.id, username: user.username, role: user.role },
         });
     } catch (error) {
         console.error('Login query failed:', error.message);
